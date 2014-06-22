@@ -167,8 +167,63 @@ class media_imageType extends eZDataType
 	{
 		return '';
 	}
+	
+	function toString( $objectAttribute )
+	{
+		return $objectAttribute->attribute( 'data_text' );
+	}
+	
+	function fromString( $objectAttribute, $string )
+	{
+		$images = unserialize( $string );
+		$uploadedImages = array();
+		
+		if( !empty( $images ) )
+		{
+			foreach( $images as $image )
+			{
+				if( ! $this->dam_has_image( $image ) )
+				{
+					$url = MugoDamFunctionCollection::uploadToDam( $image );
+					
+					if( $url )
+					{
+						$uploadedImages[] = $url;
+					}
+					else
+					{
+						//Failed to upload
+						return false;
+					}
+				}
+				else
+				{
+					$uploadedImages[] = $url;
+				}
+			}
+		}
+		
+		$objectAttribute->setAttribute( 'data_text', serialize( $uploadedImages ) );
+		
+		return true;
+	}
+	
+	public function dam_has_image( $image )
+	{
+		$ini = eZINI::instance( 'mugo_dam.ini' );
+		$baseDamUrl = $ini->variable( 'Base', 'DamBaseUrl' );
+
+		// check if image is hosted on DAM
+		if( strpos( $image, $baseDamUrl ) !== false )
+		{
+			// check if exists on DAM
+			return file_exists( $image );
+		}
+		else
+		{
+			return false;
+		}
+	}
 }
 
 eZDataType::register( media_imageType::DATA_TYPE_STRING, 'media_imageType' );
-
-?>

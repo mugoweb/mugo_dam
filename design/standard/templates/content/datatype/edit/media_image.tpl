@@ -195,15 +195,23 @@ var ezpInputFieldDetails =
 	name  : "{$attribute_base}_media_image_{$attribute.id}[]"
 {rdelim};
 
+var formData = 
+	[ 
+		{ldelim} name : 'repository', value : '{ezini( 'Base', 'Repository', 'mugo_dam.ini' )}' {rdelim},
+		{ldelim} name : 'apikey'    , value : '{ezini( 'Base', 'ApiKey', 'mugo_dam.ini' )}' {rdelim},
+	];
+
+var serviceUrl = '{ezini( 'Base', 'UploadServiceUrl', 'mugo_dam.ini' )}';
+
 var fileUploadOptions =
 {ldelim}
-	url                   : '{ezini( 'Base', 'DamBaseUrl', 'mugo_dam.ini' )}',
+	url                   : serviceUrl,
 	disableImageResize    : false,
 	maxFileSize           : 5000000,
 	acceptFileTypes       : /(\.|\/)(gif|jpe?g|png)$/i,
 	autoUpload            : {if $auto_upload}true{else}false{/if},
 	replaceDownloadedFile : {if $allow_multiple}false{else}true{/if},
-	formData              : [ {ldelim} name : 'key', value : '{ezini( 'Base', 'Repository', 'mugo_dam.ini' )}' {rdelim} ],
+	formData              : formData,
 	previewMaxWidth       : 300,
 	previewMaxHeight      : 300
 {rdelim}
