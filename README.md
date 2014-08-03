@@ -3,10 +3,10 @@ mugo_dam
 
 mugo_dam stands for Mugo Digital Asset Manager. It has 2 parts: the Mugo DAM Server and this
 eZ Publish extension (client side integration to access the DAM Server). This eZ Publish extension comes
-with a new datatype for images. It has an improved image upload interface (supporting drag and drop of images).
-Images uploaded by the user do not get stored in the usual way eZ Publish stores content images but they get
-stored on a Digital Asset Server. The Digital Asset Server is a separate service (idependent of eZ Publish)
-allowing to upload images and serve images in different formats (similar to eZ Publish's image aliases).
+with a new datatype for images. The datatype features an enhanced image upload interface supporting drag and drop of images.
+
+Images uploaded by the user do not get stored in the usual way eZ Publish stores content images; instead, images are stored on the Digital Asset Server. The Digital Asset Server is a separate service (idependent of eZ Publish)
+supporting image-uploading and image-serving in different formats (similar to eZ Publish's image aliases).
 
 The way eZ Publish serves images has some downsides which the DAM Server addresses and solves:
 
