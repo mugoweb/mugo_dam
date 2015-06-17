@@ -1,0 +1,72 @@
+.tocanvas
+{
+	width: 660px;
+}
+
+.dam-images .current-image img.thumbnail,
+.dam-images .preview img.thumbnail,
+.tocanvas canvas
+{
+	display: inline-block;
+	width: 100% \9;
+	max-width: 100%;
+	height: auto;
+	padding: 4px;
+	line-height: 1.42857143;
+	background-color: #fff;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	-webkit-transition: all .2s ease-in-out;
+	-o-transition: all .2s ease-in-out;
+	transition: all .2s ease-in-out;
+}
+
+.tocanvas .preview-size
+{
+	width: 310px;
+	height: 210px;
+	float: left;
+	margin-right: 20px;
+}
+
+.tocanvas .dropbox.dragging canvas
+{
+	border: 1px dashed #ddd;
+	border-color: orange;
+}
+
+.tocanvas .select-image,
+.tocanvas .upload-image
+{
+	margin-top: 20px;
+	text-align: center;
+}
+
+.tocanvas .upload-image,
+.tocanvas .uploading
+{
+	display: none;
+}
+
+.tocanvas .fromdisk
+{
+	visibility: hidden;
+}
+.dam-images .preview img.thumbnail[src=""]
+{
+	display: none;
+}
+.dam-images fieldset.preview
+{
+	margin-bottom: 20px;
+}
+
+.dam-images fieldset.preview ul
+{
+	list-style: none;
+}
+
+.dam-images fieldset.preview li
+{
+	float: left;
+}

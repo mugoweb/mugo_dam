@@ -4,12 +4,16 @@
 	var pluginName = 'toCanvas',
 	    pluginElement = null,
 		defaults = {
-			done : function()
+			afterUpdate : function()
 			{
 			},
-			preview_size : { w : 300, h : 200 },
-			upload_service : '',
+			preview_size        : { w : 300, h : 200 },
+			upload_service      : '',
 			from_remote_service : '',
+			base_url            : '',
+			repository          : '',
+			api_key             : 'topsecret',
+			object_id           : '',
 		};
 
 	function Plugin( element, options )
@@ -22,7 +26,15 @@
 
 		this.init();
 	}
-	
+
+	/**
+	 *
+	 * @param sourceWidth
+	 * @param sourceHeight
+	 * @param targetWidth
+	 * @param targetHeight
+	 * @returns {*}
+	 */
 	function resize( sourceWidth, sourceHeight, targetWidth, targetHeight )
 	{
 		var ratio = sourceWidth / sourceHeight;
@@ -39,62 +51,161 @@
 		
 	Plugin.prototype =
 	{
+		formData : null,
+		uploadImg : null,
+		fileReader : null,
+
 		init : function()
 		{
 			var self = this;
+
+			// FormData for uploads to image server
+			self.formData = new FormData();
+
+			self.initUploadImage();
+			self.initFileReader();
+			self.initTriggers();
+			self.initDragAndDrop();
 			
-			// FormData for upload
-			var formData = new FormData();
-			
-			// get canvas context
-			var canvasTag = $( self.element ).find( 'canvas' )[0];
-			var ctx = canvasTag.getContext( '2d' );
-			
-			// JS image that gets loaded to the canvas
-			var uploadImg = new Image;
-			uploadImg.onload = function()
+			// start clean
+			self.resetUpload();
+		},
+		
+		initTriggers : function()
+		{
+			var self = this;
+						
+			// Upload image event
+			$(self.element).find( '.upload' ).click( function( event )
 			{
-				self.enableUpload();
-								
-				// calc dimensions if images are big
-				var dimensions = { w : uploadImg.width, h : uploadImg.height };
-				if( uploadImg.width > self.options.preview_size.w || uploadImg.height > self.options.preview_size.h )
+				var uploadButton = this;
+
+				$(self.element).find( '.upload-image' ).hide();
+				$(self.element).find( '.uploading' ).show();
+				
+				self.formData.append( 'apikey',     self.options.api_key );
+				self.formData.append( 'repository', self.options.repository );
+
+				var serviceUrl = self.getServiceUrl();
+
+				if( serviceUrl )
 				{
-					dimensions = resize( uploadImg.width, uploadImg.height, self.options.preview_size.w, self.options.preview_size.h );
+					$.ajax(
+					{
+						url: serviceUrl,
+						type: 'POST',
+						// Form data
+						data: self.formData,
+						headers: { 'Content-Disposition' : 'filename=' +  encodeURIComponent( self.getFileName( uploadButton ) ) + ';' },
+						dataType: 'json',
+						//Options to tell jQuery not to process data or worry about content-type.
+						cache: false,
+						contentType: false,
+						processData: false,
+						success: function( data )
+						{
+							self.afterUpload( self, data );
+						},
+						error: function( data )
+						{
+							alert( 'Failed to upload image.' );
+							self.resetUpload();
+						},
+					});
+				}
+				else
+				{
+					alert( 'No service URL configured' );
 				}
 				
-				canvasTag.width  = dimensions.w;
-				canvasTag.height = dimensions.h;
-				$( canvasTag ).attr( 'data-width', uploadImg.width );
-				$( canvasTag ).attr( 'data-height', uploadImg.height );
-	
-				ctx.drawImage( uploadImg, 0, 0, dimensions.w, dimensions.h );
-				
-				// callback done function
-				self.options.done( uploadImg, dimensions );
-			};
+				event.preventDefault();  
+				event.stopPropagation();
+			});
 
-			// JS file reader
-			var fileReader = new FileReader();
-			fileReader.onload = function( event )
+			// Event on file selection
+			$(self.element).find( '.fromdisk input' ).change( function(e)
 			{
-				uploadImg.src = event.target.result;
-			}
-			
+				self.fileReader.readAsDataURL( e.target.files[0] );
+				self.formData.append( 'files[]', $(self.element).find( '.fromdisk input' ).get(0).files[0] );
+			});
+
 			// Event on fromUrl input
 			$(self.element).find( '.fromurl input' ).on( 'change', function(e)
 			{
 				var srcUrl = $(self.element).find( '.fromurl input' ).val();
-				uploadImg.src = srcUrl;
+				self.uploadImg.src = srcUrl;
 			});
-			
-			// Event on file selection
-			$(self.element).find( '.fromdisk input' ).change( function(e)
+
+			// Cancel upload trigger
+			$(self.element).find( '.cancel-upload' ).click( function( event )
 			{
-				fileReader.readAsDataURL( e.target.files[0] );
-				formData.append( 'files[]', $(self.element).find( '.fromdisk input' ).get(0).files[0] );
+				self.resetUpload();
+
+				event.preventDefault();  
+				event.stopPropagation();
 			});
 			
+			// File select dialog trigger
+			$(self.element).find( '.select-image-trigger' ).click( function( event)
+			{
+				$(self.element).find( '.select-image .fromdisk input' ).click();
+
+				event.preventDefault();  
+				event.stopPropagation();
+			});
+			
+			// Remove current image
+			$(self.element).find( '.remove-image-trigger' ).click( function( event )
+			{
+				$(self.element).find( '.current-image img' )
+					.attr( 'src', '' )
+					.attr( 'data-base', '' );
+
+				$(self.element).find( '.storage' ).val( '' );
+				
+				event.preventDefault();  
+				event.stopPropagation();
+				
+				self.options.afterUpdate();
+			});
+
+		},
+
+		getFileName : function( context )
+		{
+			var self = this;
+
+			var ratio = $(context ).closest( 'div.tocanvas' ).attr( 'data-ratio' );
+
+			return self.options.object_id + '_'+ self.options.version + '_{{unnamed}}_' + ratio + self.addFileExtension();
+		},
+
+		addFileExtension : function()
+		{
+			var self = this;
+
+			var map =
+			{
+				'image/png'  : '.png',
+				'image/jpg'  : '.jpg',
+				'image/jpeg' : '.jpg',
+				'image/bmp'  : '.bmp',
+				'image/gif'  : '.gif',
+			};
+
+			var re = /^data:(.*);/;
+			var matches = re.exec( self.fileReader.result );
+
+			if( matches !== null )
+			{
+				return map[ matches[1] ] || '';
+			}
+		},
+
+		initDragAndDrop : function()
+		{
+			var self = this;
+
 			// Event on dropping a file
 			$(self.element).find( '.dropbox' ).on( 'dragover', function( event )
 			{
@@ -109,116 +220,129 @@
 				event.stopPropagation();
 				$(this).removeClass( 'dragging' );
 			});
+	
+			// Start dragging current-image
+			$(self.element).find( '.current-image img' ).on( 'dragstart', function(e)
+			{
+				e.originalEvent.dataTransfer.setData( 'Text', $( e.originalEvent.target ).attr( 'data-base' ) );
+			});
 			
 			$(self.element).find( '.dropbox' ).on( 'drop', function( event )
 			{
 				event.preventDefault();  
 				event.stopPropagation();
 				
-				// Drop from FS or another image
-				if( event.originalEvent.dataTransfer.getData( 'Text' ) )
+				// Check if we already have an image in the upload canvas
+				if( $(self.element).find( '.upload-image:hidden' ).length )
 				{
-					$(self.element).find( '.fromurl input' ).val( event.originalEvent.dataTransfer.getData( 'Text' ) );
-					$(self.element).find( '.fromurl input' ).trigger( 'change' );
-					
-					formData.append( 'remotefile', event.originalEvent.dataTransfer.getData( 'Text' ) );
-				}
-				else
-				{
-					// From FS
-					var files = event.originalEvent.dataTransfer.files;
-					if( files.length > 0 )
+					// Drop from FS or another image
+					if( event.originalEvent.dataTransfer.getData( 'Text' ) )
 					{
-						var i = files.length;
-						while( i-- )
+						$(self.element).find( '.fromurl input' ).val( event.originalEvent.dataTransfer.getData( 'Text' ) );
+						$(self.element).find( '.fromurl input' ).trigger( 'change' );
+
+						self.formData.append( 'remotefile', event.originalEvent.dataTransfer.getData( 'Text' ) + '?alias=original' );
+					}
+					// From FS
+					else
+					{
+						var files = event.originalEvent.dataTransfer.files;
+						if( files.length > 0 )
 						{
-							var file = files[ i ];
+							var i = files.length;
+							while( i-- )
+							{
+								var file = files[ i ];
 
-							// Only handle image files
-							if( file.type.indexOf( 'image' ) === -1 ) { continue; }
-							fileReader.readAsDataURL( file );
+								// Only handle image files
+								if( file.type.indexOf( 'image' ) === -1 ) { continue; }
+								self.fileReader.readAsDataURL( file );
 
-							formData.append( 'files[]', file );
+								self.formData.append( 'files[]', file );
+							}
 						}
 					}
 				}
 			});
-			
-			// Start dragging current-image
-			$(self.element).find( '.current-image img' ).on( 'dragstart', function(e)
-			{
-				e.originalEvent.dataTransfer.setData( 'Text', $( e.originalEvent.target ).attr( 'data-original' ) );
-			});
-			
-			// Upload image
-			$(self.element).find( '.upload' ).click( function( event )
-			{
-				formData.append( 'apikey', 'topsecret' );
-
-				var serviceUrl;
-				
-				// File upload or re-use remote image
-				if( $(self.element).find( '.fromurl input' ).val() )
-				{
-					serviceUrl = self.options.from_remote_service;
-				}
-				else
-				{
-					serviceUrl = self.options.upload_service;
-				}
-				
-				if( serviceUrl )
-				{
-					$.ajax({
-						url: serviceUrl,
-						type: 'POST',
-						success: function( data )
-						{
-							self.afterUpload( self, data );
-						},
-						// Form data
-						data: formData,
-						dataType: 'json',
-						//Options to tell jQuery not to process data or worry about content-type.
-						cache: false,
-						contentType: false,
-						processData: false
-					});
-				}
-				else
-				{
-					alert( 'No service URL configured' );
-				}
-				
-				event.preventDefault();  
-				event.stopPropagation();
-			});
-			
-			$(self.element).find( '.cancel-upload' ).click( function( event )
-			{
-				self.resetUpload();
-
-				event.preventDefault();  
-				event.stopPropagation();
-			});
 		},
+		
+		/**
+		 * The file reader is needed to get the content form the HTML file input.
+		 * File reader onloads sets the uploadImg src and triggers its onload function.
+		 */
+		initFileReader : function()
+		{
+			var self = this;
+			// JS file reader
+			self.fileReader = new FileReader();
+			self.fileReader.onload = function( event )
+			{
+				self.uploadImg.src = event.target.result;
+			};
+		},
+		
+		initUploadImage : function()
+		{
+			var self = this;
+			
+			// JS image that gets loaded to the canvas
+			self.uploadImg = new Image();
+
+			// get canvas context
+			var canvasTag = $( self.element ).find( 'canvas' )[0];
+			var ctx = canvasTag.getContext( '2d' );
+			
+			self.uploadImg.onload = function()
+			{
+				self.enableUpload();
+
+				// calc dimensions if images are big
+				var dimensions = { w : self.uploadImg.width, h : self.uploadImg.height };
+				if( self.uploadImg.width > self.options.preview_size.w || self.uploadImg.height > self.options.preview_size.h )
+				{
+					dimensions = resize( self.uploadImg.width, self.uploadImg.height, self.options.preview_size.w, self.options.preview_size.h );
+				}
 				
+				canvasTag.width  = dimensions.w;
+				canvasTag.height = dimensions.h;
+				$( canvasTag ).attr( 'data-width', self.uploadImg.width );
+				$( canvasTag ).attr( 'data-height', self.uploadImg.height );
+	
+				ctx.drawImage( self.uploadImg, 0, 0, dimensions.w, dimensions.h );
+			};
+		},
+		
 		afterUpload : function( self, data )
 		{
 			if( data.files.length )
 			{
-				var imgTag = $(self.element).find( '.current-image img' );
+				// there is only one upload file in the array
+				var fileData = data.files[ 0 ];
 				
-				var imgUrl = data.files[0].url;
-				var imgPreviewAliasUrl = imgUrl + '?alias=' + imgTag.attr( 'data-alias' );
-				var imgOriginalAliasUrl = imgUrl + '?alias=original';
-				
-				//console.log( $( pluginElement ) );
-				imgTag
-					.attr( 'src', imgPreviewAliasUrl )
-					.attr( 'data-original', imgOriginalAliasUrl );
+				if( fileData.error )
+				{
+					alert( 'Error: ' +  fileData.error );
+				}
+				else
+				{
+					// sets the string we store in the DB
+					$(self.element).find( '.storage' ).val( fileData.urlPath );
 
-				$(self.element).find( '.storage' ).val( imgUrl );
+					// sets the src and data-base attribute, using the default alias to display the image
+					var imgTag = $(self.element).find( '.current-image img' );
+					var alias = imgTag.attr( 'data-alias' ) ? '?alias=' + imgTag.attr( 'data-alias' ) : '';
+
+					var imgUrl = this.options.base_url + fileData.urlPath;
+					var imgPreviewAliasUrl = imgUrl + alias;
+					var imgOriginalAliasUrl = imgUrl;
+
+					imgTag
+						.attr( 'src', imgPreviewAliasUrl )
+						.attr( 'data-base', imgOriginalAliasUrl );
+
+					// callback afterUpdate function
+					self.options.afterUpdate();
+				}
 				
 				self.resetUpload();
 			}
@@ -231,11 +355,18 @@
 			// disable upload button
 			$( self.element ).find( '.select-image' ).show();
 			$( self.element ).find( '.upload-image' ).hide();
+			$( self.element ).find( '.uploading' ).hide();
 
 			// clear canvas
 			var canvasTag = $( self.element ).find( 'canvas' )[0];
 			var ctx = canvasTag.getContext( '2d' );
 			ctx.clearRect( 0, 0, canvasTag.width, canvasTag.height );
+			
+			ctx.font="28px Verdana";
+			ctx.fillStyle = "#999999";
+			ctx.textAlign = "center";
+			ctx.fillText( 'Drop image here', 135, 50 );
+			ctx.fillText( 'to upload', 135, 90 );
 			
 			// clear file upload input
 			var fileInput = $(self.element).find( '.fromdisk input' );
@@ -244,6 +375,18 @@
 			
 			// clear remote file input
 			$(self.element).find( '.fromurl input' ).val( '' );
+			
+			// reset preview select
+			$(self.element).find( '.preview' ).val( '' );
+			
+			// reset dropbox
+			$(self.element).find( '.dropbox' ).removeClass( 'dragging' );
+			
+			// reset objects
+			self.formData = new FormData();
+			
+			// rest imgObj
+			self.uploadImg.src = '';
 		},
 		
 		enableUpload : function()
@@ -252,7 +395,25 @@
 			
 			$( self.element ).find( '.select-image' ).hide();
 			$( self.element ).find( '.upload-image' ).show();
-		}
+		},
+		
+		getServiceUrl : function()
+		{
+			var self = this;
+			var serviceUrl = false;
+
+			// File upload or re-use remote image
+			if( $(self.element).find( '.fromurl input' ).val() )
+			{
+				serviceUrl = self.options.from_remote_service;
+			}
+			else
+			{
+				serviceUrl = self.options.upload_service;
+			}
+			
+			return serviceUrl;
+		},
 	};
 
 	$.fn[pluginName] = function ( options ) {

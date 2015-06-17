@@ -2,6 +2,6 @@
 
 [DataTypeSettings]
 ExtensionDirectories[]=mugo_dam
-AvailableDataTypes[]=media_image
+AvailableDataTypes[]=dam_images
 
 */ ?>
