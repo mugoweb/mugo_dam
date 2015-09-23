@@ -369,7 +369,7 @@ class dam_imagesType extends eZDataType
 			{
 				case 'auto':
 				{
-					$protocol = eZSys::isSSLNow() ? 'https' : 'http';
+					$protocol = eZSys::serverProtocol();
 				}
 				// do not break
 
