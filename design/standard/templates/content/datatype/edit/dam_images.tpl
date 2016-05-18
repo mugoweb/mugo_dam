@@ -28,32 +28,31 @@ The supporting JavaScript files must be loaded AFTER jQuery
      $auto_upload    = $options.2
 }
 
-{def $image_url    = false()
-     $base_url     = ezini( 'Base', 'DamBaseUrl', 'mugo_dam.ini' )
-     $ratios       = ezini( 'ImageRatios', 'List', 'mugo_dam.ini' )
-     $i_alias      = false()}
+{def
+	$image_url = false()
+	$base_url = ezini( 'Base', 'DamBaseUrl', 'mugo_dam.ini' )
+	$ratios = ezini( 'ImageRatios', 'List', 'mugo_dam.ini' )
+	$i_alias = false()
+	$preview_images = ezini( 'Preview', 'PreviewImages', 'mugo_dam.ini' )
+}
 
 
 <div class="dam-images" id="ezp-attribute-id-{$attribute.id}">
 
-	<fieldset class="preview">
-		<legend>Preview</legend>
-		<ul>
-			<li data-alias="standard_218x145" style="width: 260px">
-				Standard
-				<img src="" class="thumbnail" />
-			</li>
-			<li data-alias="cinema_288x154" style="width: 260px">
-				Wide <span></span>
-				<img src="" class="thumbnail" width="218" />
-			</li>
-			<li data-alias="square_50x50" style="width: 140px">
-				Square <span></span>
-				<img src="" class="thumbnail" />
-			</li>
-		</ul>
-	</fieldset>
-	
+	{if preview_images}
+		<fieldset class="preview">
+			<legend>Preview</legend>
+			<ul>
+				{foreach $preview_images as $name => $alias}
+					<li data-alias="{$alias}">
+						<label>{$name|wash()}</label>
+						<img src="" class="thumbnail" />
+					</li>
+				{/foreach}
+			</ul>
+		</fieldset>
+	{/if}
+
 	{foreach $ratios as $id}
 		{set $image_url = first_set( $attribute.content[ $id ], false() )
 		     $i_alias   = first_set( ezini( $id, 'Alias', 'mugo_dam.ini' ), '' )}

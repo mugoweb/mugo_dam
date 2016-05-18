@@ -1,10 +1,14 @@
-{if is_unset( $image_class )}
-	{def $image_class = ''}
+{if is_unset( $image_alias )}
+	{def $image_alias = ''}
+{/if}
+{if is_unset( $image_ratio_identifier )}
+	{def $image_ratio_identifier = 'standard'}
 {/if}
 
-{def $base_url = ezini( 'Base', 'DamBaseUrl', 'mugo_dam.ini' )}
+{def $image_path = $attribute|image_url( $image_alias, $image_ratio_identifier )}
+
 {if $attribute.has_content}
 	{foreach $attribute.content as $entry}
-		<img src="{$base_url}{$entry}{if $image_class}?alias={$image_class}{/if}" alt="" />
+		<img src="{$image_path}" alt="" />
 	{/foreach}
 {/if}

@@ -248,12 +248,23 @@ class dam_imagesType extends eZDataType
 		
 		if( !empty( $images ) )
 		{
-			foreach( $images as $ratio => $image )
+			foreach( $images as $ratio => $data )
 			{
+				if( is_array( $data ) )
+				{
+					$image = $data[ 'url' ];
+					$name = $data[ 'name' ];
+				}
+				else
+				{
+					$image = $data;
+					$name = null;
+				}
+
 				if( ! $this->dam_has_image( $image ) )
 				{
-					$url = MugoDamFunctionCollection::uploadToDam( $image );
-					
+					$url = MugoDamFunctionCollection::uploadToDam( $image, $name );
+
 					if( $url )
 					{
 						$uploadedImages[ $ratio ] = $url;
@@ -308,6 +319,8 @@ class dam_imagesType extends eZDataType
 	}
 	
 	/**
+	 * Returns an image URL based on the given eZ Attribute, alias, ratio identifier and protocol.
+	 *
 	 * $protocol can be 'http', 'https', 'none', 'auto'
 	 * 
 	 * @param eZContentObjectAttribute $contentObjectAttribute

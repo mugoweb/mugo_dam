@@ -9,7 +9,7 @@ class MugoDamFunctionCollection
 {
 	/**
 	 * Uploads given imagePath to the DAM. Either returns URL of upload image in the DAM or
-	 * false on failure.
+	 * false on failure. The imagePath can be a local image or remote image specified as a URL
 	 * 
 	 * @param string $imagePath
 	 * @return boolean|string
