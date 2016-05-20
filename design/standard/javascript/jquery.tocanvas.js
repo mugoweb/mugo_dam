@@ -78,46 +78,8 @@
 			// Upload image event
 			$(self.element).find( '.upload' ).click( function( event )
 			{
-				var uploadButton = this;
+				self.upload( this );
 
-				$(self.element).find( '.upload-image' ).hide();
-				$(self.element).find( '.uploading' ).show();
-				
-				self.formData.append( 'apikey',     self.options.api_key );
-				self.formData.append( 'repository', self.options.repository );
-
-				var serviceUrl = self.getServiceUrl();
-
-				if( serviceUrl )
-				{
-					$.ajax(
-					{
-						url: serviceUrl,
-						type: 'POST',
-						// Form data
-						data: self.formData,
-						headers: { 'Content-Disposition' : 'filename=' +  encodeURIComponent( self.getFileName( uploadButton ) ) + ';' },
-						dataType: 'json',
-						//Options to tell jQuery not to process data or worry about content-type.
-						cache: false,
-						contentType: false,
-						processData: false,
-						success: function( data )
-						{
-							self.afterUpload( self, data );
-						},
-						error: function( data )
-						{
-							alert( 'Failed to upload image.' );
-							self.resetUpload();
-						},
-					});
-				}
-				else
-				{
-					alert( 'No service URL configured' );
-				}
-				
 				event.preventDefault();  
 				event.stopPropagation();
 			});
@@ -396,7 +358,51 @@
 			$( self.element ).find( '.select-image' ).hide();
 			$( self.element ).find( '.upload-image' ).show();
 		},
-		
+
+		upload : function( uploadButton )
+		{
+			var self = this;
+			
+			$(self.element).find( '.upload-image' ).hide();
+			$(self.element).find( '.uploading' ).show();
+
+			self.formData.append( 'apikey',     self.options.api_key );
+			self.formData.append( 'repository', self.options.repository );
+
+			var serviceUrl = self.getServiceUrl();
+
+			if( serviceUrl )
+			{
+				$.ajax(
+					{
+						url: serviceUrl,
+						type: 'POST',
+						// Form data
+						data: self.formData,
+						headers: { 'Content-Disposition' : 'filename=' +  encodeURIComponent( self.getFileName( uploadButton ) ) + ';' },
+						dataType: 'json',
+						//Options to tell jQuery not to process data or worry about content-type.
+						cache: false,
+						contentType: false,
+						processData: false,
+						success: function( data )
+						{
+							self.afterUpload( self, data );
+						},
+						error: function( data )
+						{
+							alert( 'Failed to upload image.' );
+							self.resetUpload();
+						},
+					});
+			}
+			else
+			{
+				alert( 'No service URL configured' );
+			}
+
+		},
+
 		getServiceUrl : function()
 		{
 			var self = this;

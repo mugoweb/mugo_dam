@@ -6,6 +6,9 @@
  */
 class dam_imagesType extends eZDataType
 {
+	/** @var bool */
+	protected static $backwardsCompatibleMode = false; //older version did not store the image alt text
+
 	const DATA_TYPE_STRING = 'dam_images';
 
 	function __construct()
@@ -30,34 +33,35 @@ class dam_imagesType extends eZDataType
 			if( $obj_name )
 			{
 				// Check if we should rename image file names
-				$entries = $contentObjectAttribute->attribute( 'content' );
+				$ratios = $contentObjectAttribute->attribute( 'content' );
 
-				if( !empty( $entries ) )
+				if( !empty( $ratios ) )
 				{
 					$dirty = false;
-					foreach( $entries as $key => $entry )
+					foreach( $ratios as $key => $ratio )
 					{
-						if( strpos( $entry, '{{unnamed}}' ) )
+						if( strpos( $ratio[ 'url' ], '{{unnamed}}' ) )
 						{
-							$parts = pathinfo( $entry );
+							$parts = pathinfo( $ratio[ 'url' ] );
 							$new_name = str_replace( '{{unnamed}}', $obj_name, $parts[ 'basename' ] );
 
-							$new_path = MugoDamFunctionCollection::rename( $entry, $new_name );
+							$new_path = MugoDamFunctionCollection::rename( $ratio[ 'url' ], $new_name );
 
 							if( $new_path )
 							{
 								$dirty = true;
-								$entries[ $key ] = $new_path;
-							} else
+								$ratios[ $key ][ 'url' ] = $new_path;
+							}
+							else
 							{
-								// report
+								eZDebugSetting::writeWarning( 'extension-mugo_dam', 'Failed to rename image.', __METHOD__ );
 							}
 						}
 					}
 
 					if( $dirty )
 					{
-						$contentObjectAttribute->setAttribute( 'data_text', serialize( $entries ) );
+						$contentObjectAttribute->setAttribute( 'data_text', serialize( $ratios ) );
 						$contentObjectAttribute->store();
 					}
 				}
@@ -95,7 +99,20 @@ class dam_imagesType extends eZDataType
 	 */
 	function objectAttributeContent( $objectAttribute )
 	{
-		return unserialize( $objectAttribute->attribute( 'data_text' ) );
+		$return = unserialize( $objectAttribute->attribute( 'data_text' ) );
+
+		if( self::$backwardsCompatibleMode )
+		{
+			foreach( $return as $ratio => $data )
+			{
+				if( ! is_array( $data ) )
+				{
+					$return[ $ratio ] = array( 'url' => $data );
+				}
+			}
+		}
+
+		return $return;
 	}
 
 	/* (non-PHPdoc)
@@ -109,19 +126,19 @@ class dam_imagesType extends eZDataType
 
 		if( $http->hasPostVariable( $tagName ) )
 		{
-			$data = $http->postVariable( $tagName );
-			if( !empty( $data ) )
+			$ratios = $http->postVariable( $tagName );
+			if( !empty( $ratios ) )
 			{
 				// clean out empty values
-				foreach( $data as $index => $entry )
+				foreach( $ratios as $ratio => $data )
 				{
-					if( !trim( $entry ) )
+					if( !trim( $data[ 'url' ] ) )
 					{
-						unset( $data[ $index ] );
+						unset( $ratios[ $ratio ] );
 					}
 				}
-				
-				$contentObjectAttribute->setAttribute( 'data_text', serialize( $data ) );
+
+				$contentObjectAttribute->setAttribute( 'data_text', serialize( $ratios ) );
 				$return = true;
 			}
 		}
@@ -205,13 +222,13 @@ class dam_imagesType extends eZDataType
 		
 		if( $http->hasPostVariable( $tagName ) )
 		{
-			$data = $http->postVariable( $tagName );
-			if( !empty( $data ) )
+			$ratio = $http->postVariable( $tagName );
+			if( !empty( $ratio ) )
 			{
 				// clean out empty values
-				foreach( $data as $entry )
+				foreach( $ratio as $data )
 				{
-					if( trim( $entry ) )
+					if( trim( $data[ 'url' ] ) )
 					{
 						$return = true;
 						break;
@@ -234,8 +251,8 @@ class dam_imagesType extends eZDataType
 	}
 	
 	/**
-	 * Function is a bit overloaded: it should just write the string back into the DB.
-	 * But it also allows you to give an image file/url and it will upload it to the DAM.
+	 * Function is a bit overloaded: you can specify the keys 'upload_url' and 'upload_name' which will then upload
+	 * the image to the image server.
 	 * 
 	 * @param type $objectAttribute
 	 * @param string $string
@@ -243,50 +260,60 @@ class dam_imagesType extends eZDataType
 	 */
 	public function fromString( $objectAttribute, $string )
 	{
-		$images = unserialize( $string );
-		$uploadedImages = array();
-		
-		if( !empty( $images ) )
+		$ratios = unserialize( $string );
+
+		if( !empty( $ratios ) )
 		{
-			foreach( $images as $ratio => $data )
+			foreach( $ratios as $ratio => $data )
 			{
-				if( is_array( $data ) )
+				if( self::$backwardsCompatibleMode )
 				{
-					$image = $data[ 'url' ];
-					$name = $data[ 'name' ];
-				}
-				else
-				{
-					$image = $data;
-					$name = null;
-				}
-
-				if( ! $this->dam_has_image( $image ) )
-				{
-					$url = MugoDamFunctionCollection::uploadToDam( $image, $name );
-
-					if( $url )
+					if( !is_array( $data ) )
 					{
-						$uploadedImages[ $ratio ] = $url;
+						$data = array( 'upload_url' => $data );
+					}
+				}
+
+				// Upload new image
+				if( $data[ 'upload_url' ] )
+				{
+					if( ! $this->dam_has_image( $data[ 'upload_url' ] ) )
+					{
+						$url = MugoDamFunctionCollection::uploadToDam( $data[ 'upload_url' ], $data[ 'upload_name' ] );
+
+						if( !$url )
+						{
+							//Critical issue - failed to upload
+							return false;
+						}
 					}
 					else
 					{
-						//Failed to upload
-						return false;
+						$url = $data[ 'upload_url' ];
 					}
+
+					// Cleanup overload data
+					unset( $data[ 'upload_url' ] );
+					unset( $data[ 'upload_name' ] );
+
+					$data[ 'url' ] = $url;
 				}
-				else
-				{
-					$uploadedImages[ $ratio ] = $image;
-				}
+
+				$ratios[ $ratio ] = $data;
 			}
 		}
 		
-		$objectAttribute->setAttribute( 'data_text', serialize( $uploadedImages ) );
+		$objectAttribute->setAttribute( 'data_text', serialize( $ratios ) );
 		
 		return true;
 	}
-	
+
+	/**
+	 * Not sure if that's really working in all usecases
+	 *
+	 * @param string $image
+	 * @return bool
+	 */
 	public function dam_has_image( $image )
 	{
 		$url = self::getImageUrl( $image, null, 'http' );
@@ -339,13 +366,20 @@ class dam_imagesType extends eZDataType
 			{
 				$content = $contentObjectAttribute->attribute( 'content' );
 
-				// Get image path
 				$image_ratio_identifier = $image_ratio_identifier ? $image_ratio_identifier : 'standard';
-				$image_path = isset( $content[ $image_ratio_identifier ] ) ? $content[ $image_ratio_identifier ] : reset( $content );
+				$ratio = isset( $content[ $image_ratio_identifier ] ) ? $content[ $image_ratio_identifier ] : reset( $content );
 
-				if( $image_path )
+				if( self::$backwardsCompatibleMode )
 				{
-					$return = self::getImageUrl( $image_path, $alias, $protocol );
+					if( !is_array( $ratio ) )
+					{
+						$ratio = array( 'url' => $ratio );
+					}
+				}
+
+				if( $ratio[ 'url' ] )
+				{
+					$return = self::getImageUrl( $ratio[ 'url' ], $alias, $protocol );
 				}
 			}
 		}

@@ -29,7 +29,7 @@ The supporting JavaScript files must be loaded AFTER jQuery
 }
 
 {def
-	$image_url = false()
+	$image_data = false()
 	$base_url = ezini( 'Base', 'DamBaseUrl', 'mugo_dam.ini' )
 	$ratios = ezini( 'ImageRatios', 'List', 'mugo_dam.ini' )
 	$i_alias = false()
@@ -53,20 +53,30 @@ The supporting JavaScript files must be loaded AFTER jQuery
 		</fieldset>
 	{/if}
 
-	{foreach $ratios as $id}
-		{set $image_url = first_set( $attribute.content[ $id ], false() )
-		     $i_alias   = first_set( ezini( $id, 'Alias', 'mugo_dam.ini' ), '' )}
+	{def
+		$image_data = false()
+		$image_url =''
+		$image_alt = ''
+	}
 
-		<div class="tocanvas" data-ratio="{$id|wash()}">
+	{foreach $ratios as $ratio}
+		{set
+			$image_data = first_set( $attribute.content[ $ratio ], false() )
+			$i_alias = first_set( ezini( $ratio, 'Alias', 'mugo_dam.ini' ), '' )
+			$image_url = first_set( $image_data.url, '' )
+			$image_alt = first_set( $image_data.alt, '' )
+		}
+
+		<div class="tocanvas" data-ratio="{$ratio|wash()}">
 
 			<input 
 				class="storage"
 				type="hidden"
-				name="{$attribute_base}_dam_images_{$attribute.id}[{$id}]"
+				name="{$attribute_base}_dam_images_{$attribute.id}[{$ratio}][url]"
 				value="{$image_url}" />
 
-			<h2>{first_set( ezini( $id, 'Label', 'mugo_dam.ini' ), 'Image' )|wash()}</h2>
-			<p>{first_set( ezini( $id, 'Description', 'mugo_dam.ini' ), '' )|wash()}</p>
+			<h2>{first_set( ezini( $ratio, 'Label', 'mugo_dam.ini' ), 'Image' )|wash()}</h2>
+			<p>{first_set( ezini( $ratio, 'Description', 'mugo_dam.ini' ), '' )|wash()}</p>
 
 			<div>
 				<div class="current-image preview-size">
@@ -88,6 +98,15 @@ The supporting JavaScript files must be loaded AFTER jQuery
 				</div>
 				
 				<div style="clear: both"></div>
+
+				<div>
+					<span>Alternative image text:</span>
+					<input
+						name="{$attribute_base}_dam_images_{$attribute.id}[{$ratio}][alt]"
+						class="box"
+						type="text"
+						value="{$image_alt|wash()}" />
+				</div>
 			</div>
 			
 			<div class="select-image">				
