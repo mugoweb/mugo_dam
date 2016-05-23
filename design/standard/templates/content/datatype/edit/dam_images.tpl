@@ -29,7 +29,6 @@ The supporting JavaScript files must be loaded AFTER jQuery
 }
 
 {def
-	$image_data = false()
 	$base_url = ezini( 'Base', 'DamBaseUrl', 'mugo_dam.ini' )
 	$ratios = ezini( 'ImageRatios', 'List', 'mugo_dam.ini' )
 	$i_alias = false()

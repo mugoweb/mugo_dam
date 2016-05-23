@@ -4,4 +4,7 @@
 ExtensionDirectories[]=mugo_dam
 AvailableDataTypes[]=dam_images
 
+[ImageSettings]
+DefaultEmbedAlias=default
+
 */ ?>

@@ -1,9 +1,0 @@
-
-Glossar
-==========
-- alias
-A keyword that implies rules how to convert an uploaded image to a specific size, ratio and other image transformations
-
-- image_ratio_identifier
-Each instance of the eZAttribute can store multiple images the user uploads. Each uploaded image is stored in context
-of an image_ratio_identifier
