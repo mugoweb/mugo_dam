@@ -1,11 +1,18 @@
 # Mugo DAM extension - mugo_dam
 
-mugo_dam stands for Mugo Digital Asset Manager. It has 2 parts:
+*mugo_dam* stands for Mugo Digital Asset Manager. It has 2 parts:
 
 1) the Mugo DAM Server
 2) and this eZ Publish extension (client side integration to access the DAM Server)
 
 This eZ Publish extension comes with a new datatype for images. The datatype features an enhanced image upload interface supporting drag and drop of images. Images uploaded by the user do not get stored in the usual way eZ Publish stores content images; instead, images are stored on the Digital Asset Server. The Digital Asset Server is a separate service (idependent of eZ Publish) supporting image-uploading and image-serving in different formats (similar to eZ Publish's image aliases).
+
+## Installation
+* Create entry in site.ini to enable the extension
+* Copy mugo_dam/settings/mugo_dam.ini to settings/override/
+* Customize the settings file
+* Clear cache
+* Create new autoload file
 
 ##The datatype
 The eZ Publish datatype is called 'dam_images'. It is responsible to store the references to the images on the image server -- it is not storing the images locally. The datatype stores those references in an associated array:
@@ -28,10 +35,12 @@ This associated array gets serialized and stored in the 'data_text' field in the
 ##The attribute_view_gui template
 
 In the templates you can use the attribute_view_gui to render an image. Following parameters are supported:
+
 * image_alias
 * image_ratio_identifier
 
 Please write your own view template if you need a more complex solution to render img tags. An alternative is to use a template operator called 'image_url'. You'd execute the operator on a DAM image attribute and you have to option to specify 3 parameters:
+
 * alias
 * image_ratio_identifier
 * protocol ('http', 'https', 'none', 'auto')
@@ -84,12 +93,12 @@ The way eZ Publish serves images has some downsides which the DAM Server address
 
 1) The way eZ Publish serves images in a cluster setup is slow. It servers the images from a shared file system (like NFS) and keeps a reference for each image (and image alias) in a cluster database. You easily end up with millions of entries in that cluster database for bigger sites.
 The Digital Asset Server improves the performance here: 
- - it servers the images directly from the local disk
- - it is a dedicated service which can run on dedicated hardware
- - it does not require a database (for keeping a reference)
- - the images can be served by a different subdomain allowing to increase the client side (browser)
-   speed loading a page
- - having a dedicated service offloads the image serving from eZ Publish
+
+* it servers the images directly from the local disk
+* it is a dedicated service which can run on dedicated hardware
+* it does not require a database (for keeping a reference)
+* the images can be served by a different subdomain allowing to increase the client side (browser) speed loading a page
+* having a dedicated service offloads the image serving from eZ Publish
 
 2) It is possible to reach some file system limitations (32000 subfolders limitation) which then breaks the image upload functionality in eZ Publish. The DAM Server avoids those file system limitations by filing images into date folders (year/month).
 
@@ -100,12 +109,10 @@ The Digital Asset Server improves the performance here:
 5) eZ Publish does not separate between uploaded images and the dynamically created image aliases. Making the system harder to maintain. The DAM Server stores image aliases in dedicated FS directories.
 
 ## Glossar
-- alias
-A keyword that implies rules how to convert an uploaded image to a specific size, ratio and other image transformations
+*alias* A keyword that implies rules how to convert an uploaded image to a specific size, ratio and other image transformations
 
-- image_ratio_identifier
-Each instance of the eZAttribute can store multiple images the user uploads. Each uploaded image is stored in context
+*image_ratio_identifier* Each instance of the eZAttribute can store multiple images the user uploads. Each uploaded image is stored in context
 of an image_ratio_identifier
 
 ## TODO
-- review class options like max file size etc
+* review class options like max file size etc
