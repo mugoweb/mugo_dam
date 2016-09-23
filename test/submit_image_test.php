@@ -9,7 +9,7 @@ $data = array(
 );
 
 $headers = array(
-	'Content-Disposition: attachment; filename='. rawurlencode( $fileName ) .';',
+	'Content-Disposition: attachment; filename='. rawurlencode( $filename ) .';',
 );
 
 $access_details = array(
