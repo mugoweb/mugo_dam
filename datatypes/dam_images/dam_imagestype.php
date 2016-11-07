@@ -13,8 +13,8 @@ class dam_imagesType extends eZDataType
 
 	function __construct()
 	{
-		parent::__construct( self::DATA_TYPE_STRING, ezpI18n::tr( 'mugo_dam_images/datatype', 'DAM Images', 'Datatype name'),
-							 array( 'serialize_supported' => true ) );
+		parent::__construct( self::DATA_TYPE_STRING, ezpI18n::tr( 'mugo_dam_images/datatype', 'DAM Images', 'Datatype name' ),
+			array( 'serialize_supported' => true ) );
 	}
 
 	/**
@@ -51,8 +51,7 @@ class dam_imagesType extends eZDataType
 							{
 								$dirty = true;
 								$ratios[ $key ][ 'url' ] = $new_path;
-							}
-							else
+							} else
 							{
 								eZDebugSetting::writeWarning( 'extension-mugo_dam', 'Failed to rename image.', __METHOD__ );
 							}
@@ -92,8 +91,8 @@ class dam_imagesType extends eZDataType
 	{
 		return eZInputValidator::STATE_ACCEPTED;
 	}
-	
-	
+
+
 	/* (non-PHPdoc)
 	 * @see eZDataType::objectAttributeContent()
 	 */
@@ -105,7 +104,7 @@ class dam_imagesType extends eZDataType
 		{
 			foreach( $return as $ratio => $data )
 			{
-				if( ! is_array( $data ) )
+				if( !is_array( $data ) )
 				{
 					$return[ $ratio ] = array( 'url' => $data );
 				}
@@ -121,15 +120,16 @@ class dam_imagesType extends eZDataType
 	function fetchObjectAttributeHTTPInput( $http, $base, $contentObjectAttribute )
 	{
 		$return = false;
-		
+
 		$tagName = $base . '_dam_images_' . $contentObjectAttribute->attribute( 'id' );
 
 		if( $http->hasPostVariable( $tagName ) )
 		{
 			$ratios = $http->postVariable( $tagName );
+
 			if( !empty( $ratios ) )
 			{
-				// clean out empty values
+				// clean out empty values - maybe the POST variable should be cleaner
 				foreach( $ratios as $ratio => $data )
 				{
 					if( !trim( $data[ 'url' ] ) )
@@ -138,46 +138,59 @@ class dam_imagesType extends eZDataType
 					}
 				}
 
-				$contentObjectAttribute->setAttribute( 'data_text', serialize( $ratios ) );
+				// Making sure we don't store an empty serialized array
+				$dbString = '';
+				if( !empty( $ratios ) )
+				{
+					$dbString = serialize( $ratios );
+				}
+
+				$contentObjectAttribute->setAttribute( 'data_text', $dbString );
 				$return = true;
 			}
 		}
 
 		return $return;
 	}
-		
-	/* 
-	 * PEK: it's kinda strange: this function gets called when a new content class
-	 * version get initialized (even before the user hits apply/ok).
+
+
+	/**
+	 * @param $http
+	 * @param $base
+	 * @param $classAttribute
+	 * @return bool
 	 */
 	function fetchClassAttributeHTTPInput( $http, $base, $classAttribute )
 	{
+		// PEK: it's kinda strange: this function gets called when a new content class
+		// version get initialized (even before the user hits apply/ok).
 		$hasPost = false;
-		
+
 		$options = array(
-				'max_filesize'   => 0,
-				'allow_multiple' => false,
-				'auto_upload'    => false
+			'max_filesize' => 0,
+			'allow_multiple' => false,
+			'auto_upload' => false,
+			'required_options' => 0,
 		);
-		
+
 		foreach( $options as $key => $value )
 		{
-			$name = $base . '_dam_images_'. $key .'_' . $classAttribute->attribute( 'id' );
-			if ( $http->hasPostVariable( $name ) )
+			$name = $base . '_dam_images_' . $key . '_' . $classAttribute->attribute( 'id' );
+			if( $http->hasPostVariable( $name ) )
 			{
 				$hasPost = true;
 				$options[ $key ] = $http->postVariable( $name );
 			}
 		}
-		
+
 		if( $hasPost )
 		{
 			$classAttribute->setAttribute( 'data_text4', implode( '-', $options ) );
 		}
-			
+
 		return true;
 	}
-	
+
 	/* (non-PHPdoc)
 	 * @see eZDataType::hasObjectAttributeContent()
 	 */
@@ -185,11 +198,11 @@ class dam_imagesType extends eZDataType
 	{
 		return trim( $contentObjectAttribute->attribute( 'data_text' ) ) != '';
 	}
-	
+
 	/* (non-PHPdoc)
 	 * @see eZDataType::validateClassAttributeHTTPInput()
 	 */
-	function validateObjectAttributeHTTPInput( $http, $base, $contentObjectAttribute )
+	public function validateObjectAttributeHTTPInput( $http, $base, $contentObjectAttribute )
 	{
 		if( $this->validateForRequiredContent( $http, $base, $contentObjectAttribute ) )
 		{
@@ -197,15 +210,105 @@ class dam_imagesType extends eZDataType
 		}
 		else
 		{
-			$contentObjectAttribute->setValidationError(
-					ezpI18n::tr( 'kernel/classes/datatypes',
-							'Input required.' )
-			);
-			
 			return eZInputValidator::STATE_INVALID;
 		}
 	}
-	
+
+	/**
+	 * Verifies a given contentObjectAttribute - so it's not expecting REQUEST parameters
+	 * from a http object but uses the current content of contentObjectAttribute to check
+	 * if it's valid
+	 *
+	 * @param eZContentObjectAttribute $contentObjectAttribute
+	 * @return boolean
+	 */
+	public function validateAttribute( $contentObjectAttribute )
+	{
+		$return = true;
+
+		if( $contentObjectAttribute->validateIsRequired() )
+		{
+			$return = $this->validateContent(
+				$this->objectAttributeContent( $contentObjectAttribute ),
+				$contentObjectAttribute
+			);
+		}
+
+		return $return;
+	}
+
+	/**
+	 * Stores validation error messages in the $contentObjectAttribute attribute
+	 *
+	 * @param array $attributeContent
+	 * @param eZContentObjectAttribute $contentObjectAttribute
+	 * @return bool
+	 */
+	protected function validateContent( $attributeContent, $contentObjectAttribute )
+	{
+		$return = false;
+
+		if( !empty( $attributeContent ) )
+		{
+			$imageFound = false;
+
+			// check if we got at least one image
+			foreach( $attributeContent as $ratio )
+			{
+				if( trim( $ratio[ 'url' ] ) )
+				{
+					$imageFound = true;
+
+					$requiredOptions = $this->getClassAttributeOptions(
+						$contentObjectAttribute->attribute( 'contentclass_attribute' )
+					);
+
+					$requireAltText = $requiredOptions[ 3 ] > 0;
+
+					// alt text is required
+					if( $requireAltText )
+					{
+						if( trim( $ratio[ 'alt' ] ) )
+						{
+							$return = true;
+							break;
+						}
+					}
+					else
+					{
+						$return = true;
+						break;
+					}
+				}
+			}
+
+			// Validation failed at this point.
+			if( !$imageFound )
+			{
+				$contentObjectAttribute->setValidationError(
+					ezpI18n::tr( 'kernel/classes/datatypes',
+						'Image missing.' )
+				);
+			}
+			else
+			{
+				$contentObjectAttribute->setValidationError(
+					ezpI18n::tr( 'kernel/classes/datatypes',
+						'Image alternative text missing' )
+				);
+			}
+		}
+		else
+		{
+			$contentObjectAttribute->setValidationError(
+				ezpI18n::tr( 'kernel/classes/datatypes',
+					'Input required.' )
+			);
+		}
+
+		return $return;
+	}
+
 	/**
 	 * Check if attribute is required and has content
 	 * 
@@ -215,28 +318,31 @@ class dam_imagesType extends eZDataType
 	 */
 	protected function validateForRequiredContent( $http, $base, $contentObjectAttribute )
 	{
-		// Set return value to 'true' if content is not required.
-		$return = $contentObjectAttribute->validateIsRequired() ? false : true;
-		
-		$tagName = $base . '_dam_images_' . $contentObjectAttribute->attribute( 'id' );
-		
-		if( $http->hasPostVariable( $tagName ) )
+		$return = false;
+
+		if( $contentObjectAttribute->validateIsRequired() )
 		{
-			$ratio = $http->postVariable( $tagName );
-			if( !empty( $ratio ) )
+			$tagName = $base . '_dam_images_' . $contentObjectAttribute->attribute( 'id' );
+
+			if( $http->hasPostVariable( $tagName ) )
 			{
-				// clean out empty values
-				foreach( $ratio as $data )
-				{
-					if( trim( $data[ 'url' ] ) )
-					{
-						$return = true;
-						break;
-					}
-				}
+				$ratios = $http->postVariable( $tagName );
+
+				$return = $this->validateContent( $ratios, $contentObjectAttribute );
+			}
+			else
+			{
+				$contentObjectAttribute->setValidationError(
+					ezpI18n::tr( 'kernel/classes/datatypes',
+						'Input required.' )
+				);
 			}
 		}
-		
+		else
+		{
+			$return = true;
+		}
+
 		return $return;
 	}
 	
@@ -433,7 +539,15 @@ class dam_imagesType extends eZDataType
 
 		return $return;
 	}
-	
+
+	/**
+	 * @param eZContentClassAttribute $classAttribute
+	 * @return array
+	 */
+	public function getClassAttributeOptions( eZContentClassAttribute $classAttribute )
+	{
+		return explode( '-', $classAttribute->attribute( 'data_text4' ) );
+	}
 }
 
 eZDataType::register( dam_imagesType::DATA_TYPE_STRING, 'dam_imagesType' );

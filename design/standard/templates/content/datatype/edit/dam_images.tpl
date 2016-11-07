@@ -109,10 +109,10 @@ The supporting JavaScript files must be loaded AFTER jQuery
 			</div>
 			
 			<div class="select-image">				
-				<button class="remove-image-trigger ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only">
+				<button class="remove-image-trigger button">
 					<span class="ui-button-text">Remove current image</span>
 				</button>
-				<button class="select-image-trigger ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only">
+				<button class="select-image-trigger button">
 					<span class="ui-button-text">Select new image</span>
 				</button>
 
@@ -126,10 +126,10 @@ The supporting JavaScript files must be loaded AFTER jQuery
 			</div>
 
 			<div class="upload-image">
-				<button class="upload ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only">
+				<button class="upload defaultbutton">
 					<span class="ui-button-text">Upload</span>
 				</button>
-				<button class="cancel-upload ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only">
+				<button class="cancel-upload button">
 					<span class="ui-button-text">Cancel</span>
 				</button>
 			</div>

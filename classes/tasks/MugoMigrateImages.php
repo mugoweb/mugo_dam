@@ -7,7 +7,7 @@
 
 class MugoMigrateImages extends MugoTask
 {
-	protected $imageBasePath = 'http://arrowhead.quinstreet.net/';
+	protected $imageBasePath = 'http://eweek.com.ezpub.lampdev.dms.quinstreet.net/';
 
 	protected $mapping = array(
 		'image' => array(
