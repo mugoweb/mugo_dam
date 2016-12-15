@@ -7,23 +7,26 @@
 class ezfSolrDocumentFieldDamImages extends ezfSolrDocumentFieldBase
 {
 	/**
-	 * (non-PHPdoc)
 	 * @see ezfSolrDocumentFieldBase::getData()
-	 */	
+	 *
+	 * @return array
+	 */
 	public function getData()
 	{
 		$return = array();
-		
-		$values = unserialize( $this->ContentObjectAttribute->attribute( 'data_text' ) );
-		
-		if( !empty( $values ) )
+
+		if( $this->ContentObjectAttribute->attribute( 'has_content' ) )
 		{
-			foreach( $values as $ratio_identifier => $link )
+			$content = $this->ContentObjectAttribute->attribute( 'content' );
+
+			foreach( $content as $ratio_identifier => $values )
 			{
-				$return[ 'attr_dam_images_'. $ratio_identifier .'____s' ] = $link;
+				$return[ 'attr_dam_images_'. $ratio_identifier .'____ms' ] = $values[ 'url' ];
+				$return[ 'attr_dam_images_'. $ratio_identifier .'____s' ] = $values[ 'alt' ];
 			}
 		}
-		
+
 		return $return;
 	}
 }
+
