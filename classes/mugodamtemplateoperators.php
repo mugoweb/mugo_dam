@@ -22,14 +22,17 @@ class MugoDamTemplateOperators
 				'alias' => array(
 					'type' => 'string',
 					'required' => false,
+					'default' => '',
 				),
 				'image_ratio_identifier' => array(
 					'type' => 'array',
 					'required' => false,
+					'default' => 'standard',
 				),
 				'protocol' => array(
 					'type' => 'string',
 					'required' => false,
+					'default' => 'none',
 				),
 			),
 		);
