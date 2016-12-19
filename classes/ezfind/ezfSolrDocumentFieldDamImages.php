@@ -1,9 +1,3 @@
-<?php
-/*
- * Indexing logic for the datatype dam_images - ezfind uses it
- * 
- */
-
 class ezfSolrDocumentFieldDamImages extends ezfSolrDocumentFieldBase
 {
 	/**
@@ -19,11 +13,18 @@ class ezfSolrDocumentFieldDamImages extends ezfSolrDocumentFieldBase
 		{
 			$content = $this->ContentObjectAttribute->attribute( 'content' );
 
+			$altValues = array();
 			foreach( $content as $ratio_identifier => $values )
 			{
 				$return[ 'attr_dam_images_'. $ratio_identifier .'____ms' ] = $values[ 'url' ];
-				$return[ 'attr_dam_images_'. $ratio_identifier .'____s' ] = $values[ 'alt' ];
+				$altValues[] = $values[ 'alt' ];
 			}
+		}
+
+		if( !empty( $altValues) )
+		{
+			// attr_image_t is used for the fulltext search
+			$return[ 'attr_image_t' ] = implode( ' ', $altValues );
 		}
 
 		return $return;
