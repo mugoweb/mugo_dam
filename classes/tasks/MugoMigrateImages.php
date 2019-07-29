@@ -32,7 +32,7 @@ class MugoMigrateImages extends MugoTask
 		)
 	);
 
-	public function create( $parameters, $limit )
+	public function create( $parameters )
 	{
 		$return = array();
 		
@@ -53,7 +53,7 @@ class MugoMigrateImages extends MugoTask
 			'as_object'          => false,
 			'main_node_only'     => true,
 			'offset'             => 0,
-			'limit'              => $limit
+			'limit'              => $parameters[ 'limit' ],
 		) );
 		
 		//$allContent = array( array( 'id' => 51573 ) );
@@ -66,7 +66,7 @@ class MugoMigrateImages extends MugoTask
 		return $return;
 	}
 	
-	public function execute( $task_id, $parameters )
+	public function execute( $task_id, $parameters = null )
 	{
 		$ezObj = eZContentObject::fetch( $task_id );
 

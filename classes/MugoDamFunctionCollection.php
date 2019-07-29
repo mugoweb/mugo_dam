@@ -28,10 +28,11 @@ class MugoDamFunctionCollection
 		if( copy( $imagePath, $target ) )
 		{
 			$post = array(
-				'files[0]'      => '@'.$target,
-				'creationtime'  => $creationTime,
+				'files[0]' => new CurlFile( $target ),
+				'creationtime' => $creationTime,
 			);
 
+			//TODO: check if CurlFile can handle it
 			$headers = array(
 				'Content-Disposition: attachment; filename='. rawurlencode( $fileName ) .';',
 			);
@@ -60,20 +61,20 @@ class MugoDamFunctionCollection
 	 * Renames an image on the server
 	 *
 	 * @param string $source
-	 * @param sring $target_name
+	 * @param string $target_name
 	 * @return bool|mixed
 	 */
 	static function rename( $source, $target_name )
 	{
-		$return        = false;
-		$ini           = eZINI::instance( 'mugo_dam.ini' );
+		$return = false;
+		$ini = eZINI::instance( 'mugo_dam.ini' );
 		$renameService = $ini->variable( 'Base', 'RenameServiceUrl' );
 
 		if( $source && $target_name )
 		{
 			$post = array(
-				'source'		=> $source,
-				'target_name'	=> $target_name,
+				'source' => $source,
+				'target_name' => $target_name,
 			);
 
 			$return = self::call_server( $renameService, $post );
