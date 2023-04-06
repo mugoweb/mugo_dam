@@ -13,6 +13,7 @@ This eZ Publish extension comes with a new datatype for images. The datatype fea
 * Customize the settings file
 * Clear cache
 * Create new autoload file
+* Add the new datatype to a content class
 
 ##The datatype
 The eZ Publish datatype is called 'dam_images'. It is responsible to store the references to the images on the image server -- it is not storing the images locally. The datatype stores those references in an associated array:
@@ -31,6 +32,7 @@ array(
 
 The array key is the ratio identifier 'standard' or 'square'. So a single attribute instance is able to store multiple images (that's different to the eZ Publish standard image datatype). Do not confuse 'ratio' with image aliases. Because each ratio has one original image the user uploads - and for each ratio image you can have multiple image aliases.
 This associated array gets serialized and stored in the 'data_text' field in the database.
+The image ratio identifiers are configured in the class definition. Each ratio identifier has options like 'required', 'alt. text required'.
 
 ##The attribute_view_gui template
 
@@ -78,6 +80,7 @@ The extension comes with a handler class 'ezfSolrDocumentFieldDamImages' to impl
 
 ##uploadHandler
 eZ Publish allows to develop custom upload handlers. That handler is used in various editorial operations, for example if you upload an image in an exzmltext attribute, or if an editor uploads an image via webdav. mugo_dam comes with a custom uploadHandler which will make sure the image ends up on the image server.
+In the settings file you specify the target content class (in most cases 'image' ) and the required attribute identifiers.
 
 ##Settings
 All settings have inline documentation, have a look here:
